@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --partition xdg-003-compute
 
-export OMP_NUM_THREADS=20
-export MKL_NUM_THREADS=$OMP_NUM_THREADS
+export OMP_NUM_THREADS=$(nproc --all)
+export MKL_NUM_THREADS=$(nproc --all)
 
 DATASET=human
 # DATASET=celegans
@@ -26,8 +26,6 @@ lr_decay=0.5
 decay_interval=10
 weight_decay=1e-6
 iteration=100
-
-echo $OMP_NUM_THREADS
 
 setting=$DATASET--radius$radius--ngram$ngram--dim$dim--layer_gnn$layer_gnn--window$window--layer_cnn$layer_cnn--layer_output$layer_output--lr$lr--lr_decay$lr_decay--decay_interval$decay_interval--weight_decay$weight_decay--iteration$iteration
 python run_training.py $DATASET $radius $ngram $dim $layer_gnn $window $layer_cnn $layer_output $lr $lr_decay $decay_interval $weight_decay $iteration $setting
