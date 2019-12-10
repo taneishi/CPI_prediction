@@ -103,8 +103,7 @@ def test(model, dataset):
     N = len(dataset)
     T, Y, S = [], [], []
     for data in dataset:
-        (correct_labels, predicted_labels,
-                predicted_scores) = model(data, train=False)
+        (correct_labels, predicted_labels, predicted_scores) = model(data, train=False)
         T.append(correct_labels)
         Y.append(predicted_labels)
         S.append(predicted_scores)
@@ -113,21 +112,16 @@ def test(model, dataset):
     recall = recall_score(T, Y)
     return AUC, precision, recall
 
-def save_AUCs(AUCs, filename):
-    with open(filename, 'a') as f:
-        f.write('\t'.join(map(str, AUCs)) + '\n')
-
 def save_model(model, filename):
     torch.save(model.state_dict(), filename)
 
-def shuffle_dataset(dataset, seed=123):
-    np.random.seed(seed)
+def shuffle_dataset(dataset):
     np.random.shuffle(dataset)
     return dataset
 
-def load_tensor(file_name, dtype):
+def load_tensor(file_name, dtype, device):
     data = np.load(file_name + '.npy', allow_pickle=True)
-    return [dtype(d) for d in data]
+    return [dtype(d).to(device) for d in data]
 
 def load_pickle(file_name):
     with open(file_name, 'rb') as f:
@@ -156,10 +150,10 @@ def main():
     '''Load preprocessed data.'''
     dir_input = ('../dataset/%s/input/radius%s_ngram%s/' % (DATASET, radius, ngram))
 
-    compounds = load_tensor(dir_input + 'compounds', torch.LongTensor)
-    adjacencies = load_tensor(dir_input + 'adjacencies', torch.FloatTensor)
-    proteins = load_tensor(dir_input + 'proteins', torch.LongTensor)
-    interactions = load_tensor(dir_input + 'interactions', torch.LongTensor)
+    compounds = load_tensor(dir_input + 'compounds', torch.LongTensor, device)
+    adjacencies = load_tensor(dir_input + 'adjacencies', torch.FloatTensor, device)
+    proteins = load_tensor(dir_input + 'proteins', torch.LongTensor, device)
+    interactions = load_tensor(dir_input + 'interactions', torch.LongTensor, device)
 
     fingerprint_dict = load_pickle(dir_input + 'fingerprint_dict.pkl')
     word_dict = load_pickle(dir_input + 'word_dict.pkl')
@@ -182,15 +176,14 @@ def main():
     model.optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     '''Output files.'''
-    file_AUCs = '../output/result/AUCs--' + setting + '.txt'
-    file_model = '../output/model/' + setting
-    AUCs = ('Epoch\tTime(sec)\tLoss_train\tAUC_dev\tAUC_test\tPrecision_test\tRecall_test')
-    with open(file_AUCs, 'w') as f:
-        f.write(AUCs + '\n')
+    file_AUCs = '../output/result/AUCs--%s.txt' % setting
+    file_model = '../output/model/%s' % setting
+
+    AUCs = pd.DataFrame(columns=['Epoch', 'Time(sec)', 'Loss_train', 
+        'AUC_dev', 'AUC_test', 'Precision_test', 'Recall_test'])
 
     '''Start training.'''
     print('Training...')
-    print(AUCs)
     start = timeit.default_timer()
 
     for epoch in range(1, iteration):
@@ -205,13 +198,16 @@ def main():
         end = timeit.default_timer()
         time = end - start
 
-        AUCs = [epoch, time, loss_train, AUC_dev, AUC_test, precision_test, recall_test]
+        values = [epoch, time, loss_train, AUC_dev, AUC_test, precision_test, recall_test]
+        AUCs = AUCs.append(dict((k,v) for k,v in zip(AUCs.columns, values)), ignore_index=True)
 
-        save_AUCs(AUCs, file_AUCs)
+        AUCs.to_csv(file_AUCs, index=False)
         save_model(model, file_model)
 
-        print('\t'.join(map(str, AUCs)))
+        print(AUCs.tail(10))
 
 if __name__ == '__main__':
-    torch.manual_seed(123)
+    seed = 123
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     main()

@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --partition xdg-003-compute
 
 export OMP_NUM_THREADS=$(nproc --all)
 export MKL_NUM_THREADS=$(nproc --all)
