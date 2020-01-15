@@ -1,18 +1,23 @@
+# %%
 import pickle
 import numpy as np
 import pandas as pd
 
+# %%
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 
+# %%
 from sklearn.metrics import roc_auc_score, precision_score, recall_score
 
+# %%
 import timeit
 import sys
 
+# %%
 class CompoundProteinInteractionPrediction(nn.Module):
     def __init__(self, n_fingerprint, n_word, dim, window, layer_gnn, layer_cnn, layer_output):
         super(CompoundProteinInteractionPrediction, self).__init__()
@@ -86,6 +91,7 @@ class CompoundProteinInteractionPrediction(nn.Module):
             predicted_scores = list(map(lambda x: x[1], ys))
             return correct_labels, predicted_labels, predicted_scores
 
+# %%
 def train(model, dataset):
     model.train()
     N = len(dataset)
@@ -98,6 +104,7 @@ def train(model, dataset):
         loss_total += loss.to('cpu').data.numpy()
     return loss_total
 
+# %%
 def test(model, dataset):
     model.eval()
     N = len(dataset)
@@ -112,34 +119,59 @@ def test(model, dataset):
     recall = recall_score(T, Y)
     return AUC, precision, recall
 
+# %%
 def save_model(model, filename):
     torch.save(model.state_dict(), filename)
 
+# %%
 def shuffle_dataset(dataset):
     np.random.shuffle(dataset)
     return dataset
 
+# %%
 def load_tensor(file_name, dtype, device):
     data = np.load(file_name + '.npy', allow_pickle=True)
     return [dtype(d).to(device) for d in data]
 
+# %%
 def load_pickle(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
+# %%
 def split_dataset(dataset, ratio):
     n = int(ratio * len(dataset))
     dataset_1, dataset_2 = dataset[:n], dataset[n:]
     return dataset_1, dataset_2
 
+# %%
 def main():
     '''Hyperparameters.'''
-    (DATASET, radius, ngram, dim, layer_gnn, window, layer_cnn, layer_output,
-            lr, lr_decay, decay_interval, weight_decay, iteration, setting) = sys.argv[1:]
-    (dim, layer_gnn, window, layer_cnn, layer_output, decay_interval, iteration) = \
-            map(int, [dim, layer_gnn, window, layer_cnn, layer_output, decay_interval, iteration])
-    lr, lr_decay, weight_decay = map(float, [lr, lr_decay, weight_decay])
+    DATASET = 'human'
+    # DATASET = 'celegans'
+    # DATASET = 'yourdata'
 
+    # radius = 1
+    radius = 2
+    # radius = 3
+
+    # ngram = 2
+    ngram = 3
+
+    dim = 10
+    layer_gnn = 3
+    side = 5
+    window = 2*side+1
+    layer_cnn = 3
+    layer_output = 3
+    lr = 1e-3
+    lr_decay = 0.5
+    decay_interval = 10
+    weight_decay = 1e-6
+    iteration = 100
+    
+    setting = 'default'
+    
     '''CPU or GPU.'''
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -206,8 +238,11 @@ def main():
 
         print(AUCs.tail(10))
 
+# %%
 if __name__ == '__main__':
     seed = 123
     np.random.seed(seed)
     torch.manual_seed(seed)
     main()
+
+# %%

@@ -1,8 +1,5 @@
 #!/bin/bash
 
-export OMP_NUM_THREADS=$(nproc --all)
-export MKL_NUM_THREADS=$(nproc --all)
-
 DATASET=human
 # DATASET=celegans
 # DATASET=yourdata
