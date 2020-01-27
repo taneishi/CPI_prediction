@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 import pickle
 import timeit
@@ -123,7 +124,9 @@ def main():
     weight_decay = 1e-6
     iteration = 100
     
-    setting = 'default'
+    setting = '%d-%d-%d-%d-%d-%d-%d-%d-%f-%f-%d-%f' % (
+            radius, ngram, dim, layer_gnn, slide, window, layer_cnn, layer_output,
+            lr, lr_decay, decay_interval, weight_decay)
     
     # CPU or GPU.
     if torch.cuda.is_available():
@@ -172,7 +175,7 @@ def main():
     
     start = timeit.default_timer()
 
-    for epoch in range(1, iteration):
+    for epoch in range(1, iteration+1):
         if epoch % decay_interval == 0:
             model.optimizer.param_groups[0]['lr'] *= lr_decay
 

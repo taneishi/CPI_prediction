@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 from collections import defaultdict
 import pickle
@@ -136,4 +137,5 @@ if __name__ == '__main__':
     fingerprint_dict = defaultdict(lambda: len(fingerprint_dict))
     edge_dict = defaultdict(lambda: len(edge_dict))
     word_dict = defaultdict(lambda: len(word_dict))
+
     main()
