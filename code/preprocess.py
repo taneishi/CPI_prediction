@@ -93,7 +93,7 @@ def main():
 
     Smiles, compounds, adjacencies, proteins, interactions = '', [], [], [], []
 
-    for index, data in enumerate(data_list[:1000], 1):
+    for index, data in enumerate(data_list, 1):
         smiles, sequence, interaction = data.strip().split()
         Smiles += smiles + '\n'
 
