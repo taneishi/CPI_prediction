@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 import numpy as np
-import pickle
-import timeit
-import sys
 from sklearn.metrics import roc_auc_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
-
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
+import torch
+import pickle
+import timeit
+import sys
 
 class CompoundProteinInteractionPrediction(nn.Module):
     def __init__(self, n_fingerprint, n_word, dim, window, layer_gnn, layer_cnn, layer_output):
@@ -94,10 +93,6 @@ def test(model, dataset):
     recall = recall_score(T, Y)
     return AUC, precision, recall
 
-def load_tensor(file_name, dtype, device):
-    data = np.load(file_name + '.npy', allow_pickle=True)
-    return [dtype(d).to(device) for d in data]
-
 def main():
     '''Hyperparameters.'''
     DATASET = 'human'
@@ -149,7 +144,7 @@ def main():
     dataset = list(zip(compounds, adjacencies, proteins, interactions))
     np.random.shuffle(dataset)
     dataset_train, dataset_test = train_test_split(dataset, train_size=0.8, test_size=0.2, stratify=interactions)
-    print(len(dataset), len(dataset_train), len(dataset_test))
+    print('train %d test %d' % (len(dataset_train), len(dataset_test)))
     
     # Set a model.
     model = CompoundProteinInteractionPrediction(n_fingerprint, n_word, dim, window, layer_gnn, layer_cnn, layer_output)
@@ -164,11 +159,9 @@ def main():
     file_AUCs = '../output/result/AUCs--%s.txt' % setting
     file_model = '../output/model/%s' % setting
 
-    columns = ['epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)']
-
     # Start training.
     print('Training...')
-    print(''.join(map(lambda x: '%12s' % x, columns)))
+    print(''.join(map(lambda x: '%12s' % x, ['epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)'])))
     
     start = timeit.default_timer()
 
