@@ -73,9 +73,9 @@ def dump_dictionary(dictionary, filename):
         pickle.dump(dict(dictionary), f)
 
 def main():
-    DATASET = 'human'
-    # DATASET = 'celegans'
-    # DATASET = 'yourdata'
+    dataset = 'human'
+    # dataset = 'celegans'
+    # dataset = 'yourdata'
 
     # radius = 0  # w/o fingerprints (i.e., atoms).
     # radius = 1
@@ -85,7 +85,7 @@ def main():
     # ngram = 2
     ngram = 3
     
-    with open('../dataset/%s/original/data.txt' % DATASET, 'r') as f:
+    with open('../dataset/%s/original/data.txt' % dataset, 'r') as f:
         data_list = f.read().strip().split('\n')
 
     '''Exclude data contains '.' in the SMILES format.'''
@@ -93,7 +93,7 @@ def main():
 
     Smiles, compounds, adjacencies, proteins, interactions = '', [], [], [], []
 
-    for index, data in enumerate(data_list, 1):
+    for index, data in enumerate(data_list[:1000], 1):
         smiles, sequence, interaction = data.strip().split()
         Smiles += smiles + '\n'
 
@@ -115,19 +115,13 @@ def main():
         print('\r%5d/%5d' % (index, len(data_list)), end='')
     print('')
 
-    dir_input = ('../dataset/%s/input/radius%d_ngram%d/' % (DATASET, radius, ngram))
-    os.makedirs(dir_input, exist_ok=True)
+    dir_input = ('../dataset/%s/input/radius%d_ngram%d/' % (dataset, radius, ngram))
 
-    with open(dir_input + 'Smiles.txt', 'w') as f:
-        f.write(Smiles)
-    np.save(dir_input + 'compounds', compounds)
-    np.save(dir_input + 'adjacencies', adjacencies)
-    np.save(dir_input + 'proteins', proteins)
-    np.save(dir_input + 'interactions', interactions)
-    dump_dictionary(fingerprint_dict, dir_input + 'fingerprint_dict.pkl')
-    dump_dictionary(word_dict, dir_input + 'word_dict.pkl')
+    np.savez('dataset.npz', 
+            compounds=compounds, adjacencies=adjacencies, proteins=proteins, interactions=interactions, 
+            n_fingerprint=len(fingerprint_dict), n_word=len(word_dict))
 
-    print('The preprocess of ' + DATASET + ' dataset has finished!')
+    print('The preprocess of ' + dataset + ' dataset has finished!')
 
 if __name__ == '__main__':
     RDLogger.DisableLog('rdApp.*')

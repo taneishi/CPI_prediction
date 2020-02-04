@@ -137,17 +137,13 @@ def main():
     print('Using %s device.' % device)
 
     # Load preprocessed data.
-    dir_input = ('../dataset/%s/input/radius%s_ngram%s/' % (DATASET, radius, ngram))
+    compounds, adjacencies, proteins, interactions, n_fingerprint, n_word = \
+            np.load('dataset.npz', allow_pickle=True).values()
 
-    compounds = load_tensor(dir_input + 'compounds', torch.LongTensor, device)
-    adjacencies = load_tensor(dir_input + 'adjacencies', torch.FloatTensor, device)
-    proteins = load_tensor(dir_input + 'proteins', torch.LongTensor, device)
-    interactions = load_tensor(dir_input + 'interactions', torch.LongTensor, device)
-
-    fingerprint_dict = pickle.load(open(dir_input + 'fingerprint_dict.pkl', 'rb'))
-    word_dict = pickle.load(open(dir_input + 'word_dict.pkl', 'rb'))
-    n_fingerprint = len(fingerprint_dict)
-    n_word = len(word_dict)
+    compounds = [torch.LongTensor(d).to(device) for d in compounds]
+    adjacencies = [torch.FloatTensor(d).to(device) for d in adjacencies]
+    proteins = [torch.LongTensor(d).to(device) for d in proteins]
+    interactions = [torch.LongTensor(d).to(device) for d in interactions]
 
     # Create a dataset and split it into train/dev/test.
     dataset = list(zip(compounds, adjacencies, proteins, interactions))
