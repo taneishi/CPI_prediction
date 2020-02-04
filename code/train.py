@@ -161,7 +161,7 @@ def main():
 
     # Start training.
     print('Training...')
-    print(''.join(map(lambda x: '%12s' % x, ['epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)'])))
+    print('%5s%12s%12s%12s%12s%12s' % ('epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)'))
     
     start = timeit.default_timer()
 
@@ -175,8 +175,7 @@ def main():
         time = timeit.default_timer() - start
         start = start + time
 
-        values = [epoch, loss_train, AUC_test, precision_test, recall_test, time]
-        print('%12s' % epoch + ''.join(map(lambda x: '%12.4f' % x, values[1:])))
+        print('%5d%12.4f%12.4f%12.4f%12.4f%12.4f' % (epoch, loss_train, AUC_test, precision_test, recall_test, time))
         
     torch.save(model.state_dict(), file_model)
 
