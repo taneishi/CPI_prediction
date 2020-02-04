@@ -123,17 +123,18 @@ def main():
     decay_interval = 10
     weight_decay = 1e-6
     iteration = 100
-    
+
     setting = '%d-%d-%d-%d-%d-%d-%d-%d-%f-%f-%d-%f' % (
-            radius, ngram, dim, layer_gnn, slide, window, layer_cnn, layer_output,
+            radius, ngram, dim, layer_gnn, side, window, layer_cnn, layer_output,
             lr, lr_decay, decay_interval, weight_decay)
     
+    seed = 123
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
     # CPU or GPU.
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-    print('The code uses %s...' % device)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using %s device.' % device)
 
     # Load preprocessed data.
     dir_input = ('../dataset/%s/input/radius%s_ngram%s/' % (DATASET, radius, ngram))
@@ -167,7 +168,7 @@ def main():
     file_AUCs = '../output/result/AUCs--%s.txt' % setting
     file_model = '../output/model/%s' % setting
 
-    columns = ['Epoch', 'Time(sec)', 'Loss_train', 'AUC_test', 'Prec_test', 'Recall_test']
+    columns = ['epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)']
 
     # Start training.
     print('Training...')
@@ -185,13 +186,10 @@ def main():
         time = timeit.default_timer() - start
         start = start + time
 
-        values = [epoch, time, loss_train, AUC_test, precision_test, recall_test]
+        values = [epoch, loss_train, AUC_test, precision_test, recall_test, time]
         print('%12s' % epoch + ''.join(map(lambda x: '%12.4f' % x, values[1:])))
         
     torch.save(model.state_dict(), file_model)
 
 if __name__ == '__main__':
-    seed = 123
-    np.random.seed(seed)
-    torch.manual_seed(seed)
     main()
