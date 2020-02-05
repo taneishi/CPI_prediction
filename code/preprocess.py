@@ -117,7 +117,7 @@ def main():
 
     dir_input = ('../dataset/%s/input/radius%d_ngram%d/' % (dataset, radius, ngram))
 
-    np.savez('dataset.npz', 
+    np.savez_compressed('dataset.npz', 
             compounds=compounds, adjacencies=adjacencies, proteins=proteins, interactions=interactions, 
             n_fingerprint=len(fingerprint_dict), n_word=len(word_dict))
 
