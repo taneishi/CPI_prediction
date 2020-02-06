@@ -7,9 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import torch
-import pickle
 import timeit
-import sys
 
 class CompoundProteinInteractionPrediction(nn.Module):
     def __init__(self, n_fingerprint, n_word, dim, window, layer_gnn, layer_cnn, layer_output):
@@ -70,34 +68,34 @@ def train(model, dataset):
         model.optimizer.zero_grad()
         loss.backward()
         model.optimizer.step()
-        loss_total += loss.cpu().data.numpy()
+        loss_total += loss.item()
     return loss_total
 
 def test(model, dataset):
     model.eval()
-    T, Y, S = [], [], []
+    y_true_all, y_pred_all, y_score_all = [], [], []
     for fingerprints, adjacency, words, y_true in dataset:
         y_pred = model.forward(fingerprints, adjacency, words)
         
-        correct_labels = y_true.cpu().data.numpy()
-        ys = F.softmax(y_pred, 1).cpu().data.numpy()
+        correct_labels = y_true.cpu().detach().numpy()
+        y_score = F.softmax(y_pred, 1).cpu().detach().numpy()
         
-        predicted_labels = [np.argmax(x) for x in ys]
-        predicted_scores = [x[1] for x in ys]
+        predicted_labels = [np.argmax(x) for x in y_score]
+        predicted_scores = [x[1] for x in y_score]
         
-        T.append(correct_labels)
-        Y.append(predicted_labels)
-        S.append(predicted_scores)
-    AUC = roc_auc_score(T, S)
-    precision = precision_score(T, Y)
-    recall = recall_score(T, Y)
-    return AUC, precision, recall
+        y_true_all.append(correct_labels)
+        y_pred_all.append(predicted_labels)
+        y_score_all.append(predicted_scores)
+
+    auc = roc_auc_score(y_true_all, y_score_all)
+    precision = precision_score(y_true_all, y_pred_all)
+    recall = recall_score(y_true_all, y_pred_all)
+    return auc, precision, recall
 
 def main():
     '''Hyperparameters.'''
     DATASET = 'human'
     # DATASET = 'celegans'
-    # DATASET = 'yourdata'
 
     # radius = 1
     radius = 2
@@ -132,8 +130,7 @@ def main():
     print('Using %s device.' % device)
 
     # Load preprocessed data.
-    compounds, adjacencies, proteins, interactions, n_fingerprint, n_word = \
-            np.load('dataset.npz', allow_pickle=True).values()
+    compounds, adjacencies, proteins, interactions, n_fingerprint, n_word = np.load('dataset.npz', allow_pickle=True).values()
 
     compounds = [torch.LongTensor(d).to(device) for d in compounds]
     adjacencies = [torch.FloatTensor(d).to(device) for d in adjacencies]
@@ -141,17 +138,16 @@ def main():
     interactions = [torch.LongTensor(d).to(device) for d in interactions]
 
     # Create a dataset and split it into train/dev/test.
-    dataset = list(zip(compounds, adjacencies, proteins, interactions))
-    np.random.shuffle(dataset)
-    dataset_train, dataset_test = train_test_split(dataset, train_size=0.8, test_size=0.2, stratify=interactions)
+    dataset = zip(compounds, adjacencies, proteins, interactions)
+    dataset_train, dataset_test = train_test_split(list(dataset), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
     print('train %d test %d' % (len(dataset_train), len(dataset_test)))
     
     # Set a model.
     model = CompoundProteinInteractionPrediction(n_fingerprint, n_word, dim, window, layer_gnn, layer_cnn, layer_output)
     model = model.to(device)
 
-    #if torch.cuda.is_available():
-    #    model = torch.nn.DataParallel(model)
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
 
     model.optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
@@ -163,19 +159,19 @@ def main():
     print('Training...')
     print('%5s%12s%12s%12s%12s%12s' % ('epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)'))
     
-    start = timeit.default_timer()
 
     for epoch in range(1, iteration+1):
+        epoch_start = timeit.default_timer()
+
         if epoch % decay_interval == 0:
             model.optimizer.param_groups[0]['lr'] *= lr_decay
 
         loss_train = train(model, dataset_train)
-        AUC_test, precision_test, recall_test = test(model, dataset_test)
+        auc, precision, recall = test(model, dataset_test)
 
-        time = timeit.default_timer() - start
-        start = start + time
+        time = timeit.default_timer() - epoch_start
 
-        print('%5d%12.4f%12.4f%12.4f%12.4f%12.4f' % (epoch, loss_train, AUC_test, precision_test, recall_test, time))
+        print('%5d%12.4f%12.4f%12.4f%12.4f%12.4f' % (epoch, loss_train, auc, precision, recall, time))
         
     torch.save(model.state_dict(), file_model)
 
