@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import numpy as np
-from sklearn.metrics import roc_auc_score, precision_score, recall_score
-from sklearn.model_selection import train_test_split
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -87,10 +85,11 @@ def test(model, dataset):
         y_pred_all.append(predicted_labels)
         y_score_all.append(predicted_scores)
 
-    auc = roc_auc_score(y_true_all, y_score_all)
-    precision = precision_score(y_true_all, y_pred_all)
-    recall = recall_score(y_true_all, y_pred_all)
-    return auc, precision, recall
+    #auc = roc_auc_score(y_true_all, y_score_all)
+    #precision = precision_score(y_true_all, y_pred_all)
+    #recall = recall_score(y_true_all, y_pred_all)
+    acc = np.equal(y_true_all, y_pred_all).sum()
+    return acc
 
 def main():
     '''Hyperparameters.'''
@@ -139,7 +138,11 @@ def main():
 
     # Create a dataset and split it into train/dev/test.
     dataset = zip(compounds, adjacencies, proteins, interactions)
-    dataset_train, dataset_test = train_test_split(list(dataset), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
+    dataset = list(dataset)
+    np.random.shuffle(dataset)
+    #dataset_train, dataset_test = train_test_split(list(dataset), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
+    dataset_train = dataset[:int(len(dataset)*.8)]
+    dataset_test = dataset[int(len(dataset)*.8):]
     print('train %d test %d' % (len(dataset_train), len(dataset_test)))
     
     # Set a model.
@@ -157,8 +160,7 @@ def main():
 
     # Start training.
     print('Training...')
-    print('%5s%12s%12s%12s%12s%12s' % ('epoch', 'train_loss', 'test_auc', 'test_prec', 'test_recall', 'time(sec)'))
-    
+    print('%5s%12s%12s%12s' % ('epoch', 'train_loss', 'test_acc', 'time(sec)'))
 
     for epoch in range(1, iteration+1):
         epoch_start = timeit.default_timer()
@@ -167,11 +169,11 @@ def main():
             model.optimizer.param_groups[0]['lr'] *= lr_decay
 
         loss_train = train(model, dataset_train)
-        auc, precision, recall = test(model, dataset_test)
+        test_acc = test(model, dataset_test)
 
         time = timeit.default_timer() - epoch_start
 
-        print('%5d%12.4f%12.4f%12.4f%12.4f%12.4f' % (epoch, loss_train, auc, precision, recall, time))
+        print('%5d%12.4f%12.4f%12.4f' % (epoch, loss_train, test_acc, time))
         
     torch.save(model.state_dict(), file_model)
 

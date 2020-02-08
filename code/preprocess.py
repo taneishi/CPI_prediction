@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
 from collections import defaultdict
-import pickle
 from rdkit import Chem
 from rdkit import RDLogger
 import sys
@@ -64,18 +63,12 @@ def create_adjacency(mol):
 
 def split_sequence(sequence, ngram):
     sequence = '-' + sequence + '='
-    words = [word_dict[sequence[i:i+ngram]]
-             for i in range(len(sequence)-ngram+1)]
+    words = [word_dict[sequence[i:i+ngram]]for i in range(len(sequence)-ngram+1)]
     return np.array(words)
-
-def dump_dictionary(dictionary, filename):
-    with open(filename, 'wb') as f:
-        pickle.dump(dict(dictionary), f)
 
 def main():
     dataset = 'human'
     # dataset = 'celegans'
-    # dataset = 'yourdata'
 
     # radius = 0  # w/o fingerprints (i.e., atoms).
     # radius = 1
