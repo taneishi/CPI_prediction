@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 import numpy as np
 from collections import defaultdict
-from rdkit import Chem
-from rdkit import RDLogger
-import sys
-import os
+from sklearn.model_selection import train_test_split
+from rdkit import Chem, RDLogger
 
 def create_atoms(mol):
     '''Create a list of atom (e.g., hydrogen and oxygen) IDs considering the aromaticity.'''
@@ -84,11 +82,10 @@ def main():
     '''Exclude data contains '.' in the SMILES format.'''
     data_list = [d for d in data_list if '.' not in d.strip().split()[0]]
 
-    Smiles, compounds, adjacencies, proteins, interactions = '', [], [], [], []
+    compounds, adjacencies, proteins, interactions = [], [], [], []
 
     for index, data in enumerate(data_list, 1):
         smiles, sequence, interaction = data.strip().split()
-        Smiles += smiles + '\n'
 
         mol = Chem.AddHs(Chem.MolFromSmiles(smiles))  # Consider hydrogens.
         atoms = create_atoms(mol)
@@ -110,8 +107,13 @@ def main():
 
     dir_input = ('../dataset/%s/input/radius%d_ngram%d/' % (dataset, radius, ngram))
 
+    # Create a dataset and split it into train/test.
+    dataset_ = zip(compounds, adjacencies, proteins, interactions)
+    dataset_train, dataset_test = train_test_split(list(dataset_), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
+
     np.savez_compressed('dataset.npz', 
-            compounds=compounds, adjacencies=adjacencies, proteins=proteins, interactions=interactions, 
+            #compounds=compounds, adjacencies=adjacencies, proteins=proteins, interactions=interactions, 
+            dataset_train=dataset_train, dataset_test=dataset_test,
             n_fingerprint=len(fingerprint_dict), n_word=len(word_dict))
 
     print('The preprocess of ' + dataset + ' dataset has finished!')

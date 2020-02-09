@@ -71,24 +71,23 @@ def train(model, dataset):
 
 def test(model, dataset):
     model.eval()
-    y_true_all, y_pred_all, y_score_all = [], [], []
-    for fingerprints, adjacency, words, y_true in dataset:
-        y_pred = model.forward(fingerprints, adjacency, words)
+    y_true, y_pred, y_score = [], [], []
+    for fingerprints, adjacency, words, interaction in dataset:
+        output = model.forward(fingerprints, adjacency, words)
         
-        correct_labels = y_true.cpu().detach().numpy()
-        y_score = F.softmax(y_pred, 1).cpu().detach().numpy()
+        score = F.softmax(output, 1).cpu().detach().numpy()
         
-        predicted_labels = [np.argmax(x) for x in y_score]
-        predicted_scores = [x[1] for x in y_score]
+        predicted_labels = [np.argmax(x) for x in score]
+        predicted_scores = [x[1] for x in score]
         
-        y_true_all.append(correct_labels)
-        y_pred_all.append(predicted_labels)
-        y_score_all.append(predicted_scores)
+        y_true.append(interaction.cpu().detach().numpy())
+        y_pred.append(predicted_labels)
+        y_score.append(predicted_scores)
 
-    #auc = roc_auc_score(y_true_all, y_score_all)
-    #precision = precision_score(y_true_all, y_pred_all)
-    #recall = recall_score(y_true_all, y_pred_all)
-    acc = np.equal(y_true_all, y_pred_all).sum()
+    #auc = roc_auc_score(y_true, y_score)
+    #precision = precision_score(y_true, y_pred)
+    #recall = recall_score(y_true, y_pred)
+    acc = np.equal(y_true, y_pred).sum()
     return acc
 
 def main():
@@ -129,20 +128,20 @@ def main():
     print('Using %s device.' % device)
 
     # Load preprocessed data.
-    compounds, adjacencies, proteins, interactions, n_fingerprint, n_word = np.load('dataset.npz', allow_pickle=True).values()
+    dataset_train, dataset_test, n_fingerprint, n_word = np.load('dataset.npz', allow_pickle=True).values()
+    
+    for i in range(len(dataset_train)):
+        dataset_train[i,0] = torch.LongTensor(dataset_train[i,0]).to(device)
+        dataset_train[i,1] = torch.FloatTensor(dataset_train[i,1]).to(device)
+        dataset_train[i,2] = torch.LongTensor(dataset_train[i,2]).to(device)
+        dataset_train[i,3] = torch.LongTensor(dataset_train[i,3]).to(device)
 
-    compounds = [torch.LongTensor(d).to(device) for d in compounds]
-    adjacencies = [torch.FloatTensor(d).to(device) for d in adjacencies]
-    proteins = [torch.LongTensor(d).to(device) for d in proteins]
-    interactions = [torch.LongTensor(d).to(device) for d in interactions]
+    for i in range(len(dataset_test)):
+        dataset_test[i,0] = torch.LongTensor(dataset_test[i,0]).to(device)
+        dataset_test[i,1] = torch.FloatTensor(dataset_test[i,1]).to(device)
+        dataset_test[i,2] = torch.LongTensor(dataset_test[i,2]).to(device)
+        dataset_test[i,3] = torch.LongTensor(dataset_test[i,3]).to(device)
 
-    # Create a dataset and split it into train/dev/test.
-    dataset = zip(compounds, adjacencies, proteins, interactions)
-    dataset = list(dataset)
-    np.random.shuffle(dataset)
-    #dataset_train, dataset_test = train_test_split(list(dataset), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
-    dataset_train = dataset[:int(len(dataset)*.8)]
-    dataset_test = dataset[int(len(dataset)*.8):]
     print('train %d test %d' % (len(dataset_train), len(dataset_test)))
     
     # Set a model.
