@@ -113,7 +113,7 @@ def main():
     lr_decay = 0.5
     decay_interval = 10
     weight_decay = 1e-6
-    iteration = 30
+    iteration = 100
 
     setting = '%d-%d-%d-%d-%d-%d-%d-%d-%f-%f-%d-%f' % (
             radius, ngram, dim, layer_gnn, side, window, layer_cnn, layer_output,
