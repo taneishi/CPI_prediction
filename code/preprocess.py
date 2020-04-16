@@ -112,7 +112,6 @@ def main():
     dataset_train, dataset_test = train_test_split(list(dataset_), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
 
     np.savez_compressed('dataset.npz', 
-            #compounds=compounds, adjacencies=adjacencies, proteins=proteins, interactions=interactions, 
             dataset_train=dataset_train, dataset_test=dataset_test,
             n_fingerprint=len(fingerprint_dict), n_word=len(word_dict))
 
