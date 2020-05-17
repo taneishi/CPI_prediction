@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import torch
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 import argparse
 import timeit
 
@@ -20,7 +21,7 @@ def train(model, dataset, optimizer, loss_function, epoch):
         loss.backward()
         optimizer.step()
         
-        print('\repoch %3d %4d/%4d train_loss %5.3f' % (epoch, index, len(dataset), train_loss / index), end='')
+        print('\repoch %3d batch %4d/%4d train_loss %5.3f' % (epoch, index, len(dataset), train_loss / index), end='')
 
 def test(model, dataset):
     model.eval()
@@ -39,11 +40,12 @@ def test(model, dataset):
         y_score.append(predicted_scores)
 
     #auc = roc_auc_score(y_true, y_score)
-    #precision = precision_score(y_true, y_pred)
-    #recall = recall_score(y_true, y_pred)
-    acc = np.equal(y_true, y_pred).sum() / len(dataset)
+    prec = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
+    acc = accuracy_score(y_true, y_pred)
+    #acc = np.equal(y_true, y_pred).sum() / len(dataset)
 
-    print(' test_acc %5.3f' % acc, end='')
+    print(' test_acc %5.3f test_prec %5.3f test_recall %5.3f' % (acc, prec, recall), end='')
 
 def main():
     '''Hyperparameters.'''
