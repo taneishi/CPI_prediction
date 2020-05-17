@@ -1,8 +1,8 @@
-#!/usr/bin/env python
 import numpy as np
 from collections import defaultdict
 from sklearn.model_selection import train_test_split
 from rdkit import Chem, RDLogger
+import argparse
 
 def create_atoms(mol):
     '''Create a list of atom (e.g., hydrogen and oxygen) IDs considering the aromaticity.'''
@@ -65,18 +65,15 @@ def split_sequence(sequence, ngram):
     return np.array(words)
 
 def main():
-    dataset = 'human'
-    # dataset = 'celegans'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', default='human', choices=['human', 'celegans'])
+    parser.add_argument('--radius', default=2, choices=[0, 1, 2, 3]) # 0 means w/o fingerprints (i.e., atoms).
+    parser.add_argument('--ngram', default=3, choices=[2, 3]) # 0 means w/o fingerprints (i.e., atoms).
+    args = parser.parse_args()
 
-    # radius = 0  # w/o fingerprints (i.e., atoms).
-    # radius = 1
-    radius = 2
-    # radius = 3
-
-    # ngram = 2
-    ngram = 3
+    print(args)
     
-    with open('../dataset/%s/original/data.txt' % dataset, 'r') as f:
+    with open('../dataset/%s.txt' % args.dataset, 'r') as f:
         data_list = f.read().strip().split('\n')
 
     '''Exclude data contains '.' in the SMILES format.'''
@@ -91,31 +88,28 @@ def main():
         atoms = create_atoms(mol)
         i_jbond_dict = create_ijbonddict(mol)
 
-        fingerprints = extract_fingerprints(atoms, i_jbond_dict, radius)
+        fingerprints = extract_fingerprints(atoms, i_jbond_dict, args.radius)
         compounds.append(fingerprints)
 
         adjacency = create_adjacency(mol)
         adjacencies.append(adjacency)
 
-        words = split_sequence(sequence, ngram)
+        words = split_sequence(sequence, args.ngram)
         proteins.append(words)
 
         interactions.append(np.array([float(interaction)]))
 
         print('\r%5d/%5d' % (index, len(data_list)), end='')
-    print('')
-
-    dir_input = ('../dataset/%s/input/radius%d_ngram%d/' % (dataset, radius, ngram))
 
     # Create a dataset and split it into train/test.
     dataset_ = zip(compounds, adjacencies, proteins, interactions)
     dataset_train, dataset_test = train_test_split(list(dataset_), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
 
-    np.savez_compressed('dataset.npz', 
+    np.savez_compressed('%s.npz' % args.dataset, 
             dataset_train=dataset_train, dataset_test=dataset_test,
             n_fingerprint=len(fingerprint_dict), n_word=len(word_dict))
 
-    print('The preprocess of ' + dataset + ' dataset has finished!')
+    print(' The preprocess of ' + args.dataset + ' dataset has finished!')
 
 if __name__ == '__main__':
     RDLogger.DisableLog('rdApp.*')

@@ -14,7 +14,7 @@ we obtain a 2D graph-structured data of the compound (i.e., atom types and their
 The overview of our **CPI prediction by GNN-CNN** is as follows:
 
 <div align="center">
-<p><img src="model.jpeg" width="600" /></p>
+<p><img src="figure/model.jpg" width="600" /></p>
 </div>
 
 The details of the GNN and CNN are described in our paper.
@@ -79,7 +79,7 @@ Learning curves (x-axis is epoch and y-axis is AUC)
 on the test datasets of human and *C. elegans* are as follows:
 
 <div align="center">
-<p><img src="learning_curves.jpeg" width="800" /></p>
+<p><img src="figure/learning_curves.jpg" width="800" /></p>
 </div>
 
 These results can be reproduce by the above two commands (i) and (ii).
