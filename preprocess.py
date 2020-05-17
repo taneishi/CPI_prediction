@@ -68,12 +68,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', default='human', choices=['human', 'celegans'])
     parser.add_argument('--radius', default=2, choices=[0, 1, 2, 3]) # 0 means w/o fingerprints (i.e., atoms).
-    parser.add_argument('--ngram', default=3, choices=[2, 3]) # 0 means w/o fingerprints (i.e., atoms).
+    parser.add_argument('--ngram', default=3, choices=[2, 3])
     args = parser.parse_args()
 
     print(args)
     
-    with open('../dataset/%s.txt' % args.dataset, 'r') as f:
+    with open('dataset/%s.txt' % args.dataset, 'r') as f:
         data_list = f.read().strip().split('\n')
 
     '''Exclude data contains '.' in the SMILES format.'''
@@ -101,11 +101,13 @@ def main():
 
         print('\r%5d/%5d' % (index, len(data_list)), end='')
 
+        print(' %5d => %3.1f%% interactions' % (int(np.sum(interactions)), np.sum(interactions)/len(interactions)*100), end='')
+
     # Create a dataset and split it into train/test.
     dataset_ = zip(compounds, adjacencies, proteins, interactions)
     dataset_train, dataset_test = train_test_split(list(dataset_), train_size=0.8, test_size=0.2, shuffle=True, stratify=interactions)
 
-    np.savez_compressed('%s.npz' % args.dataset, 
+    np.savez_compressed('dataset/%s.npz' % args.dataset, 
             dataset_train=dataset_train, dataset_test=dataset_test,
             n_fingerprint=len(fingerprint_dict), n_word=len(word_dict))
 

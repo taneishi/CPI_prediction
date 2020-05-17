@@ -77,7 +77,7 @@ def main():
     print('Using %s device.' % device)
 
     # Load preprocessed data.
-    dataset_train, dataset_test, n_fingerprint, n_word = np.load('%s.npz' % args.dataset, allow_pickle=True).values()
+    dataset_train, dataset_test, n_fingerprint, n_word = np.load('dataset/%s.npz' % args.dataset, allow_pickle=True).values()
     
     for i in range(len(dataset_train)):
         dataset_train[i,0] = torch.LongTensor(dataset_train[i,0]).to(device)
