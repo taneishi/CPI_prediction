@@ -43,7 +43,6 @@ def test(model, dataset):
     prec = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
     acc = accuracy_score(y_true, y_pred)
-    #acc = np.equal(y_true, y_pred).sum() / len(dataset)
 
     print(' test_acc %5.3f test_prec %5.3f test_recall %5.3f' % (acc, prec, recall), end='')
 
@@ -65,14 +64,14 @@ def main():
     parser.add_argument('--weight_decay', default=1e-6)
     parser.add_argument('--epochs', default=100)
     parser.add_argument('--save_path', default='model_pth')
+    parser.add_argument('--random_seed', default=123)
 
     args = parser.parse_args()
 
     print(args)
     
-    seed = 123
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    np.random.seed(args.random_seed)
+    torch.manual_seed(args.random_seed)
     
     # CPU or GPU.
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -106,13 +105,11 @@ def main():
     loss_function = F.cross_entropy
 
     # Start training
-    print('Training...')
-
     for epoch in range(1, args.epochs+1):
         epoch_start = timeit.default_timer()
 
         if epoch % args.decay_interval == 0:
-            optimizer.param_groups[0]['lr'] *= lr_decay
+            optimizer.param_groups[0]['lr'] *= args.lr_decay
 
         train(model, dataset_train, optimizer, loss_function, epoch)
         test_acc = test(model, dataset_test)
