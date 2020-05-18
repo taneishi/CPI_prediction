@@ -1,10 +1,9 @@
 import numpy as np
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import torch
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
 import argparse
 import timeit
 
@@ -13,38 +12,43 @@ from model import CompoundProteinInteractionModel
 def train(model, dataset, optimizer, loss_function, epoch):
     model.train()
     train_loss = 0
-    for index, (fingerprints, adjacency, words, y_true) in enumerate(dataset, 1):
+    for index, (fingerprints, adjacency, words, interaction) in enumerate(dataset, 1):
         optimizer.zero_grad()
-        y_pred = model.forward(fingerprints, adjacency, words)   
-        loss = loss_function(y_pred, y_true)
+        output = model.forward(fingerprints, adjacency, words)   
+        loss = loss_function(output, interaction)
         train_loss += loss.item()
         loss.backward()
         optimizer.step()
         
         print('\repoch %3d batch %4d/%4d train_loss %5.3f' % (epoch, index, len(dataset), train_loss / index), end='')
 
-def test(model, dataset):
+def test(model, dataset, loss_function):
     model.eval()
-    y_true, y_pred, y_score = [], [], []
-    for fingerprints, adjacency, words, interaction in dataset:
+    test_loss = 0
+    y_score, y_true = [], []
+    for index, (fingerprints, adjacency, words, interaction) in enumerate(dataset, 1):
         with torch.no_grad():
             output = model.forward(fingerprints, adjacency, words)
-        
-        score = F.softmax(output, 1).cpu().detach().numpy()
-        
-        predicted_labels = [np.argmax(x) for x in score]
-        predicted_scores = [x[1] for x in score]
-        
-        y_true.append(interaction.cpu().detach().numpy())
-        y_pred.append(predicted_labels)
-        y_score.append(predicted_scores)
 
-    #auc = roc_auc_score(y_true, y_score)
+        loss = loss_function(output, interaction)
+        test_loss += loss.item()
+        score = F.softmax(output, 1).cpu()
+        y_score.append(score)
+        y_true.append(interaction.cpu())
+
+    y_score = np.concatenate(y_score)
+    y_pred = [np.argmax(x) for x in y_score]
+    y_true = np.concatenate(y_true)
+
+    acc = accuracy_score(y_true, y_pred)
+    auc = roc_auc_score(y_true, y_score[:,1])
     prec = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
-    acc = accuracy_score(y_true, y_pred)
 
-    print(' test_acc %5.3f test_prec %5.3f test_recall %5.3f' % (acc, prec, recall), end='')
+    print(' test_loss %5.3f test_acc %5.3f test_auc %5.3f test_prec %5.3f test_recall %5.3f' % \
+            (test_loss / index, acc, auc, prec, recall), end='')
+
+    return test_loss / index
 
 def main():
     '''Hyperparameters.'''
@@ -68,7 +72,7 @@ def main():
 
     args = parser.parse_args()
 
-    print(args)
+    print(vars(args))
     
     np.random.seed(args.random_seed)
     torch.manual_seed(args.random_seed)
@@ -104,17 +108,27 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_function = F.cross_entropy
 
+    test_losses = [np.inf]
+
     # Start training
-    for epoch in range(1, args.epochs+1):
+    for epoch in range(args.epochs):
         epoch_start = timeit.default_timer()
 
         if epoch % args.decay_interval == 0:
             optimizer.param_groups[0]['lr'] *= args.lr_decay
 
         train(model, dataset_train, optimizer, loss_function, epoch)
-        test_acc = test(model, dataset_test)
+        test_loss = test(model, dataset_test, loss_function)
 
         print(' %5.3f sec' % (timeit.default_timer() - epoch_start))
+
+        test_losses.append(test_loss)
+
+        if test_loss < min(test_losses[:-1]):
+            torch.save(model.state_dict(), 'model.pth')
+
+        if min(test_losses) < min(test_losses[-10:]):
+            break
         
     torch.save(model.state_dict(), args.save_path)
 
