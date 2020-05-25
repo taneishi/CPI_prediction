@@ -50,32 +50,9 @@ def test(model, dataset, loss_function):
 
     return test_loss / index
 
-def main():
-    '''Hyperparameters.'''
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default='human', choices=['human', 'celegans'])
-    parser.add_argument('--radius', default=2, choices=[1, 2, 3])
-    parser.add_argument('--ngram', default=3, choices=[2, 3])
-    parser.add_argument('--dim', default=10)
-    parser.add_argument('--layer_gnn', default=3)
-    parser.add_argument('--side', default=5)
-    parser.add_argument('--window', default=2*5+1) # 2*side+1
-    parser.add_argument('--layer_cnn', default=3)
-    parser.add_argument('--layer_output', default=3)
-    parser.add_argument('--lr', default=1e-3)
-    parser.add_argument('--lr_decay', default=0.5)
-    parser.add_argument('--decay_interval', default=10)
-    parser.add_argument('--weight_decay', default=1e-6)
-    parser.add_argument('--epochs', default=100)
-    parser.add_argument('--save_path', default='model_pth')
-    parser.add_argument('--random_seed', default=123)
-
-    args = parser.parse_args()
-
-    print(vars(args))
-    
-    np.random.seed(args.random_seed)
-    torch.manual_seed(args.random_seed)
+def main(args):
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
     
     # CPU or GPU.
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -102,13 +79,16 @@ def main():
     model = CompoundProteinInteractionModel(n_fingerprint, n_word, args)
     model = model.to(device)
 
+    if args.modelfile:
+        model.load_state_dict(torch.load(args.modelfile))
+
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     loss_function = F.cross_entropy
 
-    test_losses = [np.inf]
+    test_losses = []
 
     # Start training
     for epoch in range(args.epochs):
@@ -124,13 +104,32 @@ def main():
 
         test_losses.append(test_loss)
 
-        if test_loss < min(test_losses[:-1]):
-            torch.save(model.state_dict(), 'model.pth')
+        if len(test_losses) > 1 and test_loss < min(test_losses[:-1]):
+            torch.save(model.state_dict(), 'model/%5.3f.pth' % test_loss)
 
         if min(test_losses) < min(test_losses[-10:]):
             break
         
-    torch.save(model.state_dict(), args.save_path)
-
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('modelfile', nargs='?')
+    parser.add_argument('--dataset', default='human', choices=['human', 'celegans'])
+    parser.add_argument('--radius', default=2, choices=[1, 2, 3])
+    parser.add_argument('--ngram', default=3, choices=[2, 3])
+    parser.add_argument('--dim', default=10)
+    parser.add_argument('--layer_gnn', default=3)
+    parser.add_argument('--side', default=5)
+    parser.add_argument('--window', default=2*5+1) # 2*side+1
+    parser.add_argument('--layer_cnn', default=3)
+    parser.add_argument('--layer_output', default=3)
+    parser.add_argument('--lr', default=1e-3)
+    parser.add_argument('--lr_decay', default=0.5)
+    parser.add_argument('--decay_interval', default=10)
+    parser.add_argument('--weight_decay', default=1e-6)
+    parser.add_argument('--epochs', default=100)
+    parser.add_argument('--save_path', default='model_pth')
+    parser.add_argument('--seed', default=123)
+    args = parser.parse_args()
+    print(vars(args))
+
+    main(args)
