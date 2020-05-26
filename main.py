@@ -55,7 +55,7 @@ def main(args):
     torch.manual_seed(args.seed)
     
     # CPU or GPU.
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if not args.cpu and torch.cuda.is_available() else 'cpu')
     print('Using %s device.' % device)
 
     # Load preprocessed data.
@@ -100,16 +100,13 @@ def main(args):
         train(model, dataset_train, optimizer, loss_function, epoch)
         test_loss = test(model, dataset_test, loss_function)
 
-        print(' %5.3f sec' % (timeit.default_timer() - epoch_start))
+        print(' %5.2f sec' % (timeit.default_timer() - epoch_start))
 
         test_losses.append(test_loss)
 
         if len(test_losses) > 1 and test_loss < min(test_losses[:-1]):
             torch.save(model.state_dict(), 'model/%5.3f.pth' % test_loss)
 
-        if min(test_losses) < min(test_losses[-10:]):
-            break
-        
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('modelfile', nargs='?')
@@ -127,7 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--decay_interval', default=10)
     parser.add_argument('--weight_decay', default=1e-6)
     parser.add_argument('--epochs', default=100)
-    parser.add_argument('--save_path', default='model_pth')
+    parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--seed', default=123)
     args = parser.parse_args()
     print(vars(args))
