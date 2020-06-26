@@ -4,6 +4,12 @@ from sklearn.model_selection import train_test_split
 from rdkit import Chem, RDLogger
 import argparse
 
+atom_dict = defaultdict(lambda: len(atom_dict))
+bond_dict = defaultdict(lambda: len(bond_dict))
+fingerprint_dict = defaultdict(lambda: len(fingerprint_dict))
+edge_dict = defaultdict(lambda: len(edge_dict))
+word_dict = defaultdict(lambda: len(word_dict))
+
 def create_atoms(mol):
     '''Create a list of atom (e.g., hydrogen and oxygen) IDs considering the aromaticity.'''
     atoms = [a.GetSymbol() for a in mol.GetAtoms()]
@@ -84,7 +90,7 @@ def main():
     for index, data in enumerate(data_list, 1):
         smiles, sequence, interaction = data.strip().split()
 
-        mol = Chem.AddHs(Chem.MolFromSmiles(smiles))  # Consider hydrogens.
+        mol = Chem.AddHs(Chem.MolFromSmiles(smiles)) # Consider hydrogens.
         atoms = create_atoms(mol)
         i_jbond_dict = create_ijbonddict(mol)
 
@@ -115,11 +121,5 @@ def main():
 
 if __name__ == '__main__':
     RDLogger.DisableLog('rdApp.*')
-
-    atom_dict = defaultdict(lambda: len(atom_dict))
-    bond_dict = defaultdict(lambda: len(bond_dict))
-    fingerprint_dict = defaultdict(lambda: len(fingerprint_dict))
-    edge_dict = defaultdict(lambda: len(edge_dict))
-    word_dict = defaultdict(lambda: len(word_dict))
 
     main()
