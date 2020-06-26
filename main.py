@@ -45,8 +45,7 @@ def test(model, dataset, loss_function):
     prec = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
 
-    print(' test_loss %5.3f test_acc %5.3f test_auc %5.3f test_prec %5.3f test_recall %5.3f' % \
-            (test_loss / index, acc, auc, prec, recall), end='')
+    print(' test_loss %5.3f' % (test_loss / index), end='')
 
     return test_loss / index
 
@@ -104,7 +103,7 @@ def main(args):
 
         test_losses.append(test_loss)
 
-        if len(test_losses) > 1 and test_loss < min(test_losses[:-1]):
+        if test_loss <= min(test_losses):
             torch.save(model.state_dict(), 'model/%5.3f.pth' % test_loss)
 
 if __name__ == '__main__':
@@ -124,7 +123,7 @@ if __name__ == '__main__':
     parser.add_argument('--decay_interval', default=10)
     parser.add_argument('--weight_decay', default=1e-6)
     parser.add_argument('--epochs', default=100)
-    parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--cpu', default=False, action='store_true')
     parser.add_argument('--seed', default=123)
     args = parser.parse_args()
     print(vars(args))
